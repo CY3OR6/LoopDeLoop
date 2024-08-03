@@ -17,8 +17,11 @@ public class CellScript : MonoBehaviour
     [SerializeField]
     List<Image> lineImages = new List<Image>();
 
+
+    public bool isConnected = false;
+
     [SerializeField]
-    bool isConnected = false;
+    bool canRotate = true;
 
     [SerializeField]
     Color connectedColor = Color.green;
@@ -61,7 +64,7 @@ public class CellScript : MonoBehaviour
 
     public void RotateCell()
     {
-        if (isRotating) { return; }
+        if (isRotating || !canRotate) { return; }
 
         isRotating = true;
 
@@ -81,10 +84,14 @@ public class CellScript : MonoBehaviour
         {
             c.CheckConnectedCell();
         }
+
+        LevelManager.instance.CheckIfHasClearedLevel();
     }
 
     void CheckConnectedCell()
     {
+        if (!canRotate) return;
+
         Vector3 currentRotation = transform.rotation.eulerAngles;
 
         for (int i = 0; i < WrongRotations.Count; i++)
@@ -95,8 +102,11 @@ public class CellScript : MonoBehaviour
 
                 foreach (CellScript c in connectedCells)
                 {
-                    if (c.isConnected)
+                    if (c.isConnected && c.canRotate)
+                    {
+                        c.isConnected = false;
                         c.CheckConnectedCell();
+                    }
                 }
 
                 return;
