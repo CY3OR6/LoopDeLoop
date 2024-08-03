@@ -2,12 +2,16 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LevelManager : MonoBehaviour
 {
     public static LevelManager instance;
 
     public List<CellScript> cellsInThisLevel = new List<CellScript>();
+
+    [SerializeField]
+    string currentLevel = "";
 
     private void Awake()
     {
@@ -44,7 +48,12 @@ public class LevelManager : MonoBehaviour
             }
         }
 
-        Debug.Log("Level Cleared");
+        PlayerPrefs.SetString(currentLevel, "Cleared");
+
+        if (PlayerPrefs.GetInt("LastLevelCleared", 0) < SceneManager.GetActiveScene().buildIndex)
+        {
+            PlayerPrefs.SetInt("LastLevelCleared", SceneManager.GetActiveScene().buildIndex);
+        }
     }
 
 }
