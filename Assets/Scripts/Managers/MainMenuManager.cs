@@ -5,19 +5,9 @@ using UnityEngine.SceneManagement;
 
 public class MainMenuManager : MonoBehaviour
 {
+    public GameObject mainMenuPanel = null;
+    public GameObject levelPanel = null;
 
-
-    // Start is called before the first frame update
-    void Start()
-    {
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
 
     public void ContinueLastGame()
     {
@@ -27,11 +17,37 @@ public class MainMenuManager : MonoBehaviour
 
         lastLevelCleared++;
 
-        LoadLevel(lastLevelCleared);
+        if (lastLevelCleared <= 4)
+        {
+            LoadLevel(lastLevelCleared);
+        }
+        else
+        {
+            PlayerPrefs.SetInt("LastLevelCleared", 0);
+            LoadLevel(1);
+        }
     }
 
     public void LoadLevel(int level)
     {
         SceneManager.LoadScene(level);
+    }
+
+    public void OpenLevelScreen()
+    {
+        mainMenuPanel.SetActive(false);
+        levelPanel.SetActive(true);
+    }
+
+    public void GoBack()
+    {
+        mainMenuPanel.SetActive(true);
+        levelPanel.SetActive(false);
+    }
+
+    [ContextMenu("Clear Prefs For Testing")]
+    public void ClearPlayerPrefs()
+    {
+        PlayerPrefs.DeleteAll();
     }
 }

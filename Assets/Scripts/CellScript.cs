@@ -132,9 +132,10 @@ public class CellScript : MonoBehaviour
     {
         foreach (CellScript cell in connectedCells)
         {
-            if (cell.sourceCell == this && cell.isConnected)
+            if ((cell.sourceCell == this && cell.isConnected) && (!cell.isSource))
             {
                 cell.isConnected = false;
+                cell.sourceCell = null;
                 cell.UnconnectTheWholeLine();
             }
         }
@@ -142,6 +143,7 @@ public class CellScript : MonoBehaviour
 
     void CheckAreasAround()
     {
+        if (isSource) return;
 
         UnconnectTheWholeLine();
 
