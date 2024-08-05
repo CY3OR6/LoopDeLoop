@@ -45,6 +45,11 @@ public class MainMenuManager : MonoBehaviour
         levelPanel.SetActive(false);
     }
 
+    public void QuitApplication()
+    {
+        Application.Quit();
+    }
+
     [ContextMenu("Clear Prefs For Testing")]
     public void ClearPlayerPrefs()
     {
