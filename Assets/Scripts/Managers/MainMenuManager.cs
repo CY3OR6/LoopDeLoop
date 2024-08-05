@@ -25,16 +25,9 @@ public class MainMenuManager : MonoBehaviour
 
         Debug.Log(lastLevelCleared);
 
-        switch (lastLevelCleared)
-        {
-            case 0:
-                LoadLevel(1);
-                break;
-            case 1:
-                LoadLevel(2);
-                break;
+        lastLevelCleared++;
 
-        }
+        LoadLevel(lastLevelCleared);
     }
 
     public void LoadLevel(int level)

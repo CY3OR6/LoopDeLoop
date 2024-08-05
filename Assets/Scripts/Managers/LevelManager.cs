@@ -13,6 +13,9 @@ public class LevelManager : MonoBehaviour
     [SerializeField]
     string currentLevel = "";
 
+    [SerializeField]
+    GameObject wonPanel = null;
+
     private void Awake()
     {
         if (instance == null)
@@ -24,6 +27,9 @@ public class LevelManager : MonoBehaviour
             Destroy(instance);
             instance = this;
         }
+
+        currentLevel = SceneManager.GetActiveScene().buildIndex.ToString();
+        wonPanel.SetActive(false);
     }
 
     // Start is called before the first frame update
@@ -54,6 +60,22 @@ public class LevelManager : MonoBehaviour
         {
             PlayerPrefs.SetInt("LastLevelCleared", SceneManager.GetActiveScene().buildIndex);
         }
+
+        wonPanel.SetActive(true);
+    }
+
+    public void GoToNextLevel()
+    {
+        int sc = SceneManager.GetActiveScene().buildIndex;
+
+        sc++;
+
+        SceneManager.LoadScene(sc);
+    }
+
+    public void GoToMainMenu()
+    {
+        SceneManager.LoadScene(0);
     }
 
 }

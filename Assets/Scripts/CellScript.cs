@@ -2,8 +2,6 @@ using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 public class CellScript : MonoBehaviour
 {
@@ -15,8 +13,10 @@ public class CellScript : MonoBehaviour
     bool isRotating = false;
 
     [SerializeField]
-    List<Image> lineImages = new List<Image>();
+    bool isSource = false;
 
+    [SerializeField]
+    List<SpriteRenderer> linesRenderer = new List<SpriteRenderer>();
 
     public bool isConnected = false;
 
@@ -29,37 +29,62 @@ public class CellScript : MonoBehaviour
     [SerializeField]
     Color unconnectedColor = Color.red;
 
+    AudioSource audioSource = null;
+
+    [SerializeField]
+    AudioClip rotationAudioClip = null;
+
+    [SerializeField]
+    Vector4 directionsToCheck = Vector4.zero;
+
     [SerializeField]
     List<CellScript> connectedCells = new List<CellScript>();
 
-    [SerializeField]
-    List<Vector3> WrongRotations = new List<Vector3>();
+    private void Awake()
+    {
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
+        audioSource.clip = rotationAudioClip;
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+    }
 
     // Start is called before the first frame update
     void Start()
     {
-        CheckConnectedCell();
+        CheckAreasAround();
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (isSource)
+        {
+            isConnected = true;
+        }
+
         if (isConnected)
         {
-            foreach (Image i in lineImages)
+            foreach (SpriteRenderer item in linesRenderer)
             {
-                i.color = connectedColor;
+                item.color = connectedColor;
             }
         }
         else
         {
-            foreach (Image i in lineImages)
+            foreach (SpriteRenderer item in linesRenderer)
             {
-                i.color = unconnectedColor;
+                item.color = unconnectedColor;
             }
         }
+    }
 
-
+    private void OnMouseDown()
+    {
+        RotateCell();
     }
 
     public void RotateCell()
@@ -67,6 +92,9 @@ public class CellScript : MonoBehaviour
         if (isRotating || !canRotate) { return; }
 
         isRotating = true;
+
+        audioSource.pitch = Random.Range(0.5f, 1f);
+        audioSource.Play();
 
         Vector3 targetRotation = transform.rotation.eulerAngles;
 
@@ -78,38 +106,97 @@ public class CellScript : MonoBehaviour
     void onRotationComplete()
     {
         isRotating = false;
-        CheckConnectedCell();
-
-        foreach (CellScript c in connectedCells)
+        try
         {
-            c.CheckConnectedCell();
+            CheckAreasAround();
         }
-
+        catch (System.Exception e)
+        {
+            Debug.Log(e.Message);
+            throw;
+        }
         LevelManager.instance.CheckIfHasClearedLevel();
     }
 
-    void CheckConnectedCell()
+    [SerializeField]
+    float hitRadius = 0.5f;
+
+    [SerializeField]
+    float hitDistance = 0.5f;
+
+
+    [SerializeField]
+    LayerMask lineLayer;
+
+    void UnconnectTheWholeLine()
     {
-        if (!canRotate) return;
-
-        Vector3 currentRotation = transform.rotation.eulerAngles;
-
-        for (int i = 0; i < WrongRotations.Count; i++)
+        foreach (CellScript cell in connectedCells)
         {
-            if (WrongRotations[i] == currentRotation)
+            if (cell.sourceCell == this && cell.isConnected)
             {
-                isConnected = false;
+                cell.isConnected = false;
+                cell.UnconnectTheWholeLine();
+            }
+        }
+    }
 
-                foreach (CellScript c in connectedCells)
+    void CheckAreasAround()
+    {
+
+        UnconnectTheWholeLine();
+
+        connectedCells.Clear();
+
+        List<Collider2D> hit = new List<Collider2D>();
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.useLayerMask = true;
+        filter.layerMask = lineLayer;
+        if (0 < directionsToCheck.x)
+        {
+            Physics2D.OverlapCircle(transform.position + transform.right * hitDistance, hitRadius, filter, hit);
+
+            foreach (Collider2D item in hit)
+            {
+                if (item.transform.parent.GetComponent<CellScript>() != this)
                 {
-                    if (c.isConnected && c.canRotate)
-                    {
-                        c.isConnected = false;
-                        c.CheckConnectedCell();
-                    }
+                    connectedCells.Add(item.transform.parent.GetComponent<CellScript>());
                 }
+            }
+        }
+        if (0 < directionsToCheck.y)
+        {
+            Physics2D.OverlapCircle(transform.position - transform.right * hitDistance, hitRadius, filter, hit);
 
-                return;
+            foreach (Collider2D item in hit)
+            {
+                if (item.transform.parent.GetComponent<CellScript>() != this)
+                {
+                    connectedCells.Add(item.transform.parent.GetComponent<CellScript>());
+                }
+            }
+        }
+        if (0 < directionsToCheck.z)
+        {
+            Physics2D.OverlapCircle(transform.position + transform.up * hitDistance, hitRadius, filter, hit);
+
+            foreach (Collider2D item in hit)
+            {
+                if (item.transform.parent.GetComponent<CellScript>() != this)
+                {
+                    connectedCells.Add(item.transform.parent.GetComponent<CellScript>());
+                }
+            }
+        }
+        if (0 < directionsToCheck.w)
+        {
+            Physics2D.OverlapCircle(transform.position - transform.up * hitDistance, hitRadius, filter, hit);
+
+            foreach (Collider2D item in hit)
+            {
+                if (item.transform.parent.GetComponent<CellScript>() != this)
+                {
+                    connectedCells.Add(item.transform.parent.GetComponent<CellScript>());
+                }
             }
         }
 
@@ -117,9 +204,53 @@ public class CellScript : MonoBehaviour
         {
             if (connectedCells[i].isConnected)
             {
-                isConnected = true;
+                OnFoundConnection(connectedCells[i]);
                 return;
             }
         }
+
+        isConnected = false;
+        sourceCell = null;
+        foreach (CellScript cell in connectedCells)
+        {
+            if (cell.isConnected)
+                cell.CheckAreasAround();
+        }
+    }
+
+    [SerializeField]
+    CellScript sourceCell = null;
+
+    [SerializeField]
+    ParticleSystem connectionPS = null;
+
+    void OnFoundConnection(CellScript _sourceCell)
+    {
+        isConnected = true;
+
+        sourceCell = _sourceCell;
+
+        foreach (CellScript cell in connectedCells)
+        {
+            if (cell != sourceCell || !cell.isConnected)
+                cell.CheckAreasAround();
+        }
+
+        if (connectionPS != null)
+            connectionPS.Play();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+
+        if (directionsToCheck.x > 0)
+            Gizmos.DrawWireSphere(transform.position + (transform.right * hitDistance), hitRadius);
+        if (directionsToCheck.y > 0)
+            Gizmos.DrawWireSphere(transform.position - (transform.right * hitDistance), hitRadius);
+        if (directionsToCheck.z > 0)
+            Gizmos.DrawWireSphere(transform.position + (transform.up * hitDistance), hitRadius);
+        if (directionsToCheck.w > 0)
+            Gizmos.DrawWireSphere(transform.position - (transform.up * hitDistance), hitRadius);
     }
 }
